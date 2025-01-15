@@ -5,15 +5,26 @@ import { AnimeCard } from "@/components/AnimeCard";
 import { AnimeDialog } from "@/components/AnimeDialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
+  const { toast } = useToast();
 
-  const { data: animes, isLoading } = useQuery({
+  const { data: animes, isLoading, error } = useQuery({
     queryKey: ["animes", searchQuery],
     queryFn: () => (searchQuery ? searchAnime(searchQuery) : fetchTopAnime()),
     staleTime: 5 * 60 * 1000,
+    retry: 3,
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch anime data. Please try again later.",
+        variant: "destructive",
+      });
+      console.error("Query error:", error);
+    },
   });
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,6 +54,10 @@ const Index = () => {
               <Skeleton className="h-4 w-[200px]" />
             </div>
           ))}
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-500">
+          Failed to load anime data. Please try again later.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

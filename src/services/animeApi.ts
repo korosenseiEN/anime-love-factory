@@ -1,5 +1,24 @@
 const BASE_URL = 'https://api.jikan.moe/v4';
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response;
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      // Wait 1 second before retrying (Jikan API has rate limits)
+      await delay(1000);
+    }
+  }
+  throw new Error('Failed to fetch after retries');
+}
+
 export interface Anime {
   mal_id: number;
   title: string;
@@ -15,13 +34,23 @@ export interface Anime {
 }
 
 export const fetchTopAnime = async (): Promise<Anime[]> => {
-  const response = await fetch(`${BASE_URL}/top/anime?limit=12`);
-  const data = await response.json();
-  return data.data;
+  try {
+    const response = await fetchWithRetry(`${BASE_URL}/top/anime?limit=12`);
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Error fetching top anime:', error);
+    return [];
+  }
 };
 
 export const searchAnime = async (query: string): Promise<Anime[]> => {
-  const response = await fetch(`${BASE_URL}/anime?q=${query}&limit=12`);
-  const data = await response.json();
-  return data.data;
+  try {
+    const response = await fetchWithRetry(`${BASE_URL}/anime?q=${query}&limit=12`);
+    const data = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error('Error searching anime:', error);
+    return [];
+  }
 };
