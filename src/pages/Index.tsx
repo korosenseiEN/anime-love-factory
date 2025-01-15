@@ -17,14 +17,15 @@ const Index = () => {
     queryFn: () => (searchQuery ? searchAnime(searchQuery) : fetchTopAnime()),
     staleTime: 5 * 60 * 1000,
     retry: 3,
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to fetch anime data. Please try again later.",
-        variant: "destructive",
-      });
-      console.error("Query error:", error);
-    },
+    meta: {
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to fetch anime data. Please try again later.",
+          variant: "destructive",
+        });
+      }
+    }
   });
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
