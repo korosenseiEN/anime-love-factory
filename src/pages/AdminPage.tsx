@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Tables } from "@/integrations/supabase/types";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AnimeForm } from "@/components/admin/AnimeForm";
 
 type Anime = Tables<"anime">;
 
@@ -104,6 +103,19 @@ const AdminPage = () => {
     await handleUpdate(id, { video_url: data.publicUrl });
   };
 
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigate("/");
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -122,93 +134,15 @@ const AdminPage = () => {
 
   return (
     <div className="container mx-auto p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Admin Console</h1>
-        <Button
-          onClick={() => supabase.auth.signOut()}
-          variant="outline"
-        >
-          Sign Out
-        </Button>
-      </div>
-
+      <AdminHeader onSignOut={handleSignOut} />
       <div className="space-y-8">
         {animes.map((anime) => (
-          <div
+          <AnimeForm
             key={anime.id}
-            className="bg-card p-6 rounded-lg shadow-sm border"
-          >
-            <div className="grid gap-4">
-              <div>
-                <label className="text-sm font-medium">Title</label>
-                <Input
-                  defaultValue={anime.title}
-                  onBlur={(e) =>
-                    handleUpdate(anime.id, { title: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Synopsis</label>
-                <Textarea
-                  defaultValue={anime.synopsis || ""}
-                  onBlur={(e) =>
-                    handleUpdate(anime.id, { synopsis: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Score</label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="10"
-                  defaultValue={anime.score || ""}
-                  onBlur={(e) =>
-                    handleUpdate(anime.id, {
-                      score: parseFloat(e.target.value),
-                    })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Image URL</label>
-                <Input
-                  defaultValue={anime.image_url || ""}
-                  onBlur={(e) =>
-                    handleUpdate(anime.id, { image_url: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Video Upload</label>
-                <Input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleVideoUpload(anime.id, file);
-                    }
-                  }}
-                />
-                {anime.video_url && (
-                  <div className="mt-2">
-                    <video
-                      src={anime.video_url}
-                      controls
-                      className="w-full max-w-md"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+            anime={anime}
+            onUpdate={handleUpdate}
+            onVideoUpload={handleVideoUpload}
+          />
         ))}
       </div>
     </div>
