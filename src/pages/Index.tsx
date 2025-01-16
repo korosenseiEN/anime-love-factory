@@ -19,15 +19,14 @@ const Index = () => {
     queryKey: ["animes", searchQuery],
     queryFn: async () => {
       const apiAnimes = await (searchQuery ? searchAnime(searchQuery) : fetchTopAnime());
-      // Transform API response to match our database schema
       return apiAnimes.map((apiAnime: APIAnime): Anime => ({
-        id: apiAnime.mal_id, // Using mal_id as our id
+        id: apiAnime.mal_id,
         mal_id: apiAnime.mal_id,
         title: apiAnime.title,
         synopsis: apiAnime.synopsis,
         score: apiAnime.score,
-        image_url: apiAnime.images.jpg.image_url,
-        video_url: null, // API doesn't provide videos
+        image_url: apiAnime.images.jpg.large_image_url || apiAnime.images.jpg.image_url,
+        video_url: null,
         updated_at: new Date().toISOString()
       }));
     },
@@ -50,7 +49,7 @@ const Index = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8 text-center">Anime Explorer</h1>
+      <h1 className="text-4xl font-bold mb-8 text-center text-primary">Anime Explorer</h1>
       
       <div className="max-w-xl mx-auto mb-8">
         <Input
@@ -63,7 +62,7 @@ const Index = () => {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[...Array(12)].map((_, i) => (
             <div key={i} className="space-y-3">
               <Skeleton className="h-[300px] w-full" />
@@ -77,7 +76,7 @@ const Index = () => {
           Failed to load anime data. Please try again later.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {animes?.map((anime) => (
             <AnimeCard
               key={anime.mal_id}
