@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Anime, fetchTopAnime, searchAnime } from "@/services/animeApi";
+import { fetchTopAnime, searchAnime, type APIAnime } from "@/services/animeApi";
 import { AnimeCard } from "@/components/AnimeCard";
 import { AnimeDialog } from "@/components/AnimeDialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
+import { Tables } from "@/integrations/supabase/types";
+
+type Anime = Tables<"anime">;
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -14,7 +17,20 @@ const Index = () => {
 
   const { data: animes, isLoading, error } = useQuery({
     queryKey: ["animes", searchQuery],
-    queryFn: () => (searchQuery ? searchAnime(searchQuery) : fetchTopAnime()),
+    queryFn: async () => {
+      const apiAnimes = await (searchQuery ? searchAnime(searchQuery) : fetchTopAnime());
+      // Transform API response to match our database schema
+      return apiAnimes.map((apiAnime: APIAnime): Anime => ({
+        id: apiAnime.mal_id, // Using mal_id as our id
+        mal_id: apiAnime.mal_id,
+        title: apiAnime.title,
+        synopsis: apiAnime.synopsis,
+        score: apiAnime.score,
+        image_url: apiAnime.images.jpg.image_url,
+        video_url: null, // API doesn't provide videos
+        updated_at: new Date().toISOString()
+      }));
+    },
     staleTime: 5 * 60 * 1000,
     retry: 3,
     meta: {

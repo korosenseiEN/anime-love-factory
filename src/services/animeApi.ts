@@ -19,7 +19,7 @@ async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
   throw new Error('Failed to fetch after retries');
 }
 
-export interface Anime {
+export interface APIAnime {
   mal_id: number;
   title: string;
   images: {
@@ -33,7 +33,7 @@ export interface Anime {
   genres: Array<{ name: string }>;
 }
 
-export const fetchTopAnime = async (): Promise<Anime[]> => {
+export const fetchTopAnime = async (): Promise<APIAnime[]> => {
   try {
     const response = await fetchWithRetry(`${BASE_URL}/top/anime?limit=12`);
     const data = await response.json();
@@ -44,7 +44,7 @@ export const fetchTopAnime = async (): Promise<Anime[]> => {
   }
 };
 
-export const searchAnime = async (query: string): Promise<Anime[]> => {
+export const searchAnime = async (query: string): Promise<APIAnime[]> => {
   try {
     const response = await fetchWithRetry(`${BASE_URL}/anime?q=${query}&limit=12`);
     const data = await response.json();
