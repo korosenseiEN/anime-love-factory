@@ -24,14 +24,17 @@ export function AnimeCard({ anime, onClick }: AnimeCardProps) {
             loading="lazy"
           />
           <div className="anime-card-overlay">
-            <h3 className="text-lg font-semibold text-white mb-1 truncate">
+            <h3 className="text-xl font-bold text-white mb-2 truncate">
               {anime.title}
             </h3>
             {anime.score && (
-              <p className="text-sm text-white/80">
+              <p className="text-base text-white mb-2">
                 Score: {anime.score}
               </p>
             )}
+            <p className="text-sm text-white/90 line-clamp-2">
+              {anime.synopsis}
+            </p>
           </div>
           {anime.video_url && (
             <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground px-2 py-1 rounded text-xs">

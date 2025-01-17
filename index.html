@@ -9,18 +9,38 @@
     <meta property="og:image" content="/og-image.png" />
     <style>
       nav {
-        margin-top: 20px;
+        background-color: #1a1a1a;
+        padding: 1rem;
+        margin-bottom: 2rem;
       }
       nav ul {
         list-style-type: none;
         padding: 0;
+        margin: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
       }
       nav ul li {
         display: inline;
         margin-right: 20px;
       }
+      nav ul li:last-child {
+        margin-right: 0;
+      }
+      nav a {
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+      nav a:hover {
+        color: #646cff;
+      }
       .login-button {
-        background-color: black;
+        background-color: #646cff;
         color: white;
         padding: 10px 20px;
         text-decoration: none;
@@ -28,26 +48,23 @@
         border-radius: 5px;
         cursor: pointer;
         font-size: 16px;
+        transition: background-color 0.3s ease;
       }
       .login-button:hover {
-        background-color: grey;
+        background-color: #535bf2;
       }
     </style>
   </head>
-
   <body>
-    <div id="root">
-      <h1>Anime Explorer</h1>
-      <!-- Content of Anime Explorer goes here -->
-    </div>
     <nav>
       <ul>
-        <li><a href="index.html">Home</a></li>
-        <li><a href="about-me.html">About Me</a></li>
-        <li><a href="contact.html">Contact</a></li>
-        <li><button class="login-button">Login</button></li>
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/contact">Contact</a></li>
+        <li><a href="/admin" class="login-button">Admin Login</a></li>
       </ul>
     </nav>
+    <div id="root"></div>
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
