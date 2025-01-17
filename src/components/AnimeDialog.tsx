@@ -1,10 +1,9 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tables } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 type Anime = Tables<"anime">;
 
@@ -15,43 +14,93 @@ interface AnimeDialogProps {
 }
 
 export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleAddToFavorites = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast({
+        title: "Authentication required",
+        description: "Please login to add favorites",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    if (!anime) return;
+
+    const { error } = await supabase
+      .from("favorites")
+      .insert([{ anime_id: anime.id }]);
+
+    if (error) {
+      if (error.code === "23505") {
+        toast({
+          title: "Already in favorites",
+          description: "This anime is already in your favorites list",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add to favorites",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Added to favorites",
+    });
+  };
+
   if (!anime) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">{anime.title}</DialogTitle>
+          <DialogTitle className="text-2xl font-bold mb-4">{anime.title}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-6">
-          {anime.image_url && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
             <img
-              src={anime.image_url}
+              src={anime.image_url || "/placeholder.svg"}
               alt={anime.title}
-              className="w-full rounded-lg object-cover max-h-[400px]"
+              className="w-full rounded-lg shadow-lg"
             />
-          )}
-          {anime.video_url && (
-            <video
-              src={anime.video_url}
-              controls
-              className="w-full rounded-lg"
-            />
-          )}
-          {anime.synopsis && (
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Synopsis</h3>
-              <p className="text-base leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                {anime.synopsis}
-              </p>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Synopsis</h3>
+              <p className="text-base leading-relaxed text-foreground/90">{anime.synopsis}</p>
             </div>
-          )}
-          {anime.score && (
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Score:</span>
-              <span className="text-lg">{anime.score}</span>
-            </div>
-          )}
+            {anime.score && (
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Score</h3>
+                <p className="text-xl font-bold text-primary">{anime.score}</p>
+              </div>
+            )}
+            {anime.video_url && (
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Video Preview</h3>
+                <video
+                  src={anime.video_url}
+                  controls
+                  className="w-full rounded-lg"
+                  poster={anime.image_url || undefined}
+                />
+              </div>
+            )}
+            <Button onClick={handleAddToFavorites} className="w-full">
+              Add to Favorites
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
