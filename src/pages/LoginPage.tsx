@@ -21,14 +21,15 @@ const LoginPage = () => {
       message: error.message,
       name: error.name,
       stack: error.stack,
-      code: error instanceof AuthApiError ? error.status : 'unknown'
+      code: error instanceof AuthApiError ? error.status : 'unknown',
+      body: error instanceof AuthApiError ? error.message : undefined
     });
 
     if (error instanceof AuthApiError) {
       switch (error.status) {
         case 500:
           if (error.message.includes("Database error querying schema")) {
-            return "Authentication configuration error. Please ensure your Supabase project's Site URL and Redirect URLs are properly configured in the Authentication settings.";
+            return "Authentication configuration error. Please ensure your Supabase project's Site URL and Redirect URLs are properly configured in the Authentication settings. This error typically occurs when these URLs are not set correctly.";
           }
           return "An unexpected server error occurred. Please try again later.";
         case 400:
