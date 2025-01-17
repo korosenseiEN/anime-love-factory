@@ -6,14 +6,21 @@ async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
       const response = await fetch(url);
+      
+      // If we hit the rate limit, wait longer before retrying
+      if (response.status === 429) {
+        await delay(1000 * (i + 1)); // Progressive delay: 1s, 2s, 3s
+        continue;
+      }
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
       return response;
     } catch (error) {
       if (i === retries - 1) throw error;
-      // Wait 1 second before retrying (Jikan API has rate limits)
-      await delay(1000);
+      await delay(1000 * (i + 1));
     }
   }
   throw new Error('Failed to fetch after retries');
@@ -40,7 +47,7 @@ export const fetchTopAnime = async (): Promise<APIAnime[]> => {
     return data.data;
   } catch (error) {
     console.error('Error fetching top anime:', error);
-    return [];
+    throw error; // Re-throw to let the query handle the error
   }
 };
 
@@ -51,6 +58,6 @@ export const searchAnime = async (query: string): Promise<APIAnime[]> => {
     return data.data;
   } catch (error) {
     console.error('Error searching anime:', error);
-    return [];
+    throw error; // Re-throw to let the query handle the error
   }
 };
