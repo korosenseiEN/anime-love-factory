@@ -19,16 +19,16 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{anime.title}</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">{anime.title}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {anime.image_url && (
             <img
               src={anime.image_url}
               alt={anime.title}
-              className="w-full rounded-lg"
+              className="w-full rounded-lg object-cover max-h-[400px]"
             />
           )}
           {anime.video_url && (
@@ -39,12 +39,18 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
             />
           )}
           {anime.synopsis && (
-            <p className="text-sm text-muted-foreground">{anime.synopsis}</p>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Synopsis</h3>
+              <p className="text-base leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                {anime.synopsis}
+              </p>
+            </div>
           )}
           {anime.score && (
-            <p className="text-sm">
-              <strong>Score:</strong> {anime.score}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Score:</span>
+              <span className="text-lg">{anime.score}</span>
+            </div>
           )}
         </div>
       </DialogContent>

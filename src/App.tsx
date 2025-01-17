@@ -4,6 +4,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import AdminPage from "@/pages/AdminPage";
+import LoginPage from "@/pages/LoginPage";
+import FavoritesPage from "@/pages/FavoritesPage";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -15,6 +17,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
         </Routes>
         <Toaster />
       </BrowserRouter>
