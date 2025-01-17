@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -33,6 +33,32 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
     if (!anime) return;
 
     try {
+      // First check if this anime is already in user's favorites
+      const { data: existingFavorite, error: favoriteCheckError } = await supabase
+        .from("favorites")
+        .select()
+        .eq("user_id", session.user.id)
+        .eq("anime_id", anime.id)
+        .maybeSingle();
+
+      if (favoriteCheckError) {
+        console.error("Error checking existing favorite:", favoriteCheckError);
+        toast({
+          title: "Error",
+          description: "Failed to check existing favorites",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (existingFavorite) {
+        toast({
+          title: "Already in favorites",
+          description: "This anime is already in your favorites list",
+        });
+        return;
+      }
+
       // First, ensure the anime exists in our database
       const { data: existingAnime, error: queryError } = await supabase
         .from("anime")
@@ -91,20 +117,12 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
         }]);
 
       if (error) {
-        if (error.code === "23505") {
-          toast({
-            title: "Already in favorites",
-            description: "This anime is already in your favorites list",
-            variant: "destructive",
-          });
-        } else {
-          console.error("Error adding to favorites:", error);
-          toast({
-            title: "Error",
-            description: "Failed to add to favorites",
-            variant: "destructive",
-          });
-        }
+        console.error("Error adding to favorites:", error);
+        toast({
+          title: "Error",
+          description: "Failed to add to favorites",
+          variant: "destructive",
+        });
         return;
       }
 
