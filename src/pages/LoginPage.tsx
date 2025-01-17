@@ -16,18 +16,19 @@ const LoginPage = () => {
   const { toast } = useToast();
 
   const getErrorMessage = (error: AuthError) => {
-    console.error("Detailed login error:", {
+    console.error("Authentication error details:", {
       status: error instanceof AuthApiError ? error.status : null,
       message: error.message,
       name: error.name,
-      stack: error.stack
+      stack: error.stack,
+      code: error instanceof AuthApiError ? error.status : 'unknown'
     });
 
     if (error instanceof AuthApiError) {
       switch (error.status) {
         case 500:
           if (error.message.includes("Database error querying schema")) {
-            return "Authentication server configuration error. Please ensure your Supabase project's Site URL and Redirect URLs are properly configured.";
+            return "Authentication configuration error. Please ensure your Supabase project's Site URL and Redirect URLs are properly configured in the Authentication settings.";
           }
           return "An unexpected server error occurred. Please try again later.";
         case 400:
