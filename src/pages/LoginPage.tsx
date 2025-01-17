@@ -29,16 +29,18 @@ const LoginPage = () => {
       switch (error.status) {
         case 500:
           if (error.message.includes("Database error querying schema")) {
-            return "Authentication configuration error: Please contact the administrator to ensure the Supabase project's Site URL and Redirect URLs are properly configured in the Authentication settings. Error code: SCHEMA_500";
+            return "Authentication configuration error: Please contact support to verify the Supabase project's Site URL and Redirect URLs in Authentication settings. Error code: CONFIG_500";
           }
-          return "An unexpected server error occurred. Please try again later or contact support if the issue persists. Error code: 500";
+          return "An unexpected server error occurred. Please try again later or contact support. Error code: SERVER_500";
         case 400:
           return "Invalid email or password. Please check your credentials and try again.";
+        case 404:
+          return "Authentication service not found. Please try again later or contact support. Error code: SERVICE_404";
         default:
-          return `Authentication error: ${error.message}`;
+          return `Authentication error (${error.status}): ${error.message}`;
       }
     }
-    return error.message;
+    return `Unexpected error: ${error.message}`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -54,7 +56,7 @@ const LoginPage = () => {
 
       if (authError) throw authError;
 
-      if (!session) throw new Error("No session");
+      if (!session) throw new Error("No session returned");
 
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
