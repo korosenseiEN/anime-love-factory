@@ -17,10 +17,13 @@ const LoginPage = () => {
     if (error instanceof AuthApiError) {
       switch (error.status) {
         case 500:
-          return "Server error. Please try again later.";
+          return "Authentication server error. Please check if you have configured the Site URL and Redirect URLs in your Supabase dashboard.";
         case 400:
           return "Invalid email or password.";
         default:
+          if (error.message.includes("Database error querying schema")) {
+            return "Database configuration error. Please ensure your Supabase project is properly set up.";
+          }
           return error.message;
       }
     }
