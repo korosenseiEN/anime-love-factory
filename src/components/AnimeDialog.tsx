@@ -34,7 +34,10 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
 
     const { error } = await supabase
       .from("favorites")
-      .insert([{ anime_id: anime.id }]);
+      .insert([{ 
+        anime_id: anime.id,
+        user_id: session.user.id 
+      }]);
 
     if (error) {
       if (error.code === "23505") {
@@ -44,6 +47,7 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
           variant: "destructive",
         });
       } else {
+        console.error("Error adding to favorites:", error);
         toast({
           title: "Error",
           description: "Failed to add to favorites",
