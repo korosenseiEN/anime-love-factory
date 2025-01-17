@@ -33,41 +33,15 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
     if (!anime) return;
 
     try {
-      // First check if this anime is already in user's favorites
-      const { data: existingFavorite, error: favoriteCheckError } = await supabase
-        .from("favorites")
-        .select()
-        .eq("user_id", session.user.id)
-        .eq("anime_id", anime.id)
-        .maybeSingle();
-
-      if (favoriteCheckError) {
-        console.error("Error checking existing favorite:", favoriteCheckError);
-        toast({
-          title: "Error",
-          description: "Failed to check existing favorites",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (existingFavorite) {
-        toast({
-          title: "Already in favorites",
-          description: "This anime is already in your favorites list",
-        });
-        return;
-      }
-
-      // First, ensure the anime exists in our database
-      const { data: existingAnime, error: queryError } = await supabase
+      // First check if this anime exists in the database
+      const { data: existingAnime, error: animeError } = await supabase
         .from("anime")
         .select("id")
         .eq("mal_id", anime.mal_id)
         .maybeSingle();
 
-      if (queryError) {
-        console.error("Error checking anime existence:", queryError);
+      if (animeError) {
+        console.error("Error checking anime existence:", animeError);
         toast({
           title: "Error",
           description: "Failed to check if anime exists",
@@ -108,16 +82,51 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
         animeId = existingAnime.id;
       }
 
-      // Now add to favorites using the correct anime id
-      const { error } = await supabase
+      // Check if this anime is already in user's favorites
+      const { data: existingFavorite, error: favoriteCheckError } = await supabase
+        .from("favorites")
+        .select()
+        .eq("user_id", session.user.id)
+        .eq("anime_id", animeId)
+        .maybeSingle();
+
+      if (favoriteCheckError) {
+        console.error("Error checking existing favorite:", favoriteCheckError);
+        toast({
+          title: "Error",
+          description: "Failed to check existing favorites",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (existingFavorite) {
+        toast({
+          title: "Already in favorites",
+          description: "This anime is already in your favorites list",
+        });
+        return;
+      }
+
+      // Add to favorites
+      const { error: favoriteError } = await supabase
         .from("favorites")
         .insert([{ 
           anime_id: animeId,
           user_id: session.user.id 
         }]);
 
-      if (error) {
-        console.error("Error adding to favorites:", error);
+      if (favoriteError) {
+        // Check if it's a duplicate error
+        if (favoriteError.code === "23505") {
+          toast({
+            title: "Already in favorites",
+            description: "This anime is already in your favorites list",
+          });
+          return;
+        }
+        
+        console.error("Error adding to favorites:", favoriteError);
         toast({
           title: "Error",
           description: "Failed to add to favorites",
