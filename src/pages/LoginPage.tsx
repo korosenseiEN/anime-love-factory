@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
@@ -29,13 +29,13 @@ const LoginPage = () => {
       switch (error.status) {
         case 500:
           if (error.message.includes("Database error querying schema")) {
-            return "Authentication configuration error. Please ensure your Supabase project's Site URL and Redirect URLs are properly configured in the Authentication settings. This error typically occurs when these URLs are not set correctly.";
+            return "Authentication configuration error: Please contact the administrator to ensure the Supabase project's Site URL and Redirect URLs are properly configured in the Authentication settings. Error code: SCHEMA_500";
           }
-          return "An unexpected server error occurred. Please try again later.";
+          return "An unexpected server error occurred. Please try again later or contact support if the issue persists. Error code: 500";
         case 400:
-          return "Invalid email or password.";
+          return "Invalid email or password. Please check your credentials and try again.";
         default:
-          return error.message;
+          return `Authentication error: ${error.message}`;
       }
     }
     return error.message;
