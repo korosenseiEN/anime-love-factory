@@ -29,13 +29,13 @@ const LoginPage = () => {
       switch (error.status) {
         case 500:
           if (error.message.includes("Database error querying schema")) {
-            return "Authentication configuration error: Please contact support to verify the Supabase project's Site URL and Redirect URLs in Authentication settings. Error code: CONFIG_500";
+            return "Authentication configuration error: Please ensure the application URL is properly configured in Supabase Authentication settings (Site URL and Redirect URLs). Error code: CONFIG_500";
           }
-          return "An unexpected server error occurred. Please try again later or contact support. Error code: SERVER_500";
+          return "An unexpected server error occurred. Please try again later. Error code: SERVER_500";
         case 400:
           return "Invalid email or password. Please check your credentials and try again.";
         case 404:
-          return "Authentication service not found. Please try again later or contact support. Error code: SERVICE_404";
+          return "Authentication service not found. Please try again later. Error code: SERVICE_404";
         default:
           return `Authentication error (${error.status}): ${error.message}`;
       }
