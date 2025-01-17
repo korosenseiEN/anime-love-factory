@@ -4,12 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -27,11 +29,12 @@ const LoginPage = () => {
           return error.message;
       }
     }
-    return "An unexpected error occurred. Please try again.";
+    return error.message;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
 
     try {
@@ -64,9 +67,11 @@ const LoginPage = () => {
       });
     } catch (error) {
       console.error("Login error:", error);
+      const errorMessage = error instanceof AuthError ? getErrorMessage(error) : "Failed to login";
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: error instanceof AuthError ? getErrorMessage(error) : "Failed to login",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -77,6 +82,11 @@ const LoginPage = () => {
   return (
     <div className="container mx-auto max-w-md px-4 py-8">
       <h1 className="text-4xl font-bold mb-8 text-center text-primary">Login</h1>
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <Input
