@@ -32,10 +32,50 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
 
     if (!anime) return;
 
+    // First, ensure the anime exists in our database
+    const { data: existingAnime } = await supabase
+      .from("anime")
+      .select("id")
+      .eq("mal_id", anime.mal_id)
+      .single();
+
+    let animeId;
+    
+    if (!existingAnime) {
+      // If anime doesn't exist, insert it first
+      const { data: newAnime, error: insertError } = await supabase
+        .from("anime")
+        .insert([{
+          mal_id: anime.mal_id,
+          title: anime.title,
+          synopsis: anime.synopsis,
+          score: anime.score,
+          image_url: anime.image_url,
+          video_url: anime.video_url
+        }])
+        .select("id")
+        .single();
+
+      if (insertError) {
+        console.error("Error inserting anime:", insertError);
+        toast({
+          title: "Error",
+          description: "Failed to add anime to database",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      animeId = newAnime.id;
+    } else {
+      animeId = existingAnime.id;
+    }
+
+    // Now add to favorites using the correct anime id
     const { error } = await supabase
       .from("favorites")
       .insert([{ 
-        anime_id: anime.id,
+        anime_id: animeId,
         user_id: session.user.id 
       }]);
 
