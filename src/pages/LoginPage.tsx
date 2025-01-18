@@ -21,31 +21,33 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      // First, attempt to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (signInError) throw signInError;
+      if (!data?.user) throw new Error("No user data");
 
-      // Then get the session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) throw sessionError;
-      if (!session) throw new Error("No session data");
-
-      // Finally get the profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", session.user.id)
+        .eq("id", data.user.id)
         .maybeSingle();
 
       if (profileError) throw profileError;
-      if (!profile) throw new Error("Profile not found");
+      if (!profile) {
+        // If no profile exists, create one
+        const { error: insertError } = await supabase
+          .from("profiles")
+          .insert([{ id: data.user.id, role: "user" }]);
+        
+        if (insertError) throw insertError;
+        navigate("/");
+      } else {
+        navigate(profile.role === "admin" ? "/admin" : "/");
+      }
 
-      navigate(profile.role === "admin" ? "/admin" : "/");
       toast({ 
         title: "Success", 
         description: "Logged in successfully",
