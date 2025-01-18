@@ -27,8 +27,16 @@ const LoginPage = () => {
       });
 
       if (authError) {
-        if (authError instanceof AuthApiError && authError.status === 500) {
-          throw new Error("Authentication configuration error. Please ensure Site URL and Redirect URLs are properly set in Supabase.");
+        if (authError instanceof AuthApiError) {
+          if (authError.status === 500) {
+            throw new Error("Authentication configuration error. Please ensure Site URL and Redirect URLs are properly set in Supabase.");
+          }
+          switch (authError.message) {
+            case "Invalid login credentials":
+              throw new Error("Invalid email or password. Please check your credentials.");
+            default:
+              throw authError;
+          }
         }
         throw authError;
       }
@@ -49,20 +57,19 @@ const LoginPage = () => {
       if (error instanceof Error) {
         message = error.message;
       } else if (error instanceof AuthApiError) {
-        switch (error.status) {
-          case 500:
-            message = "Authentication configuration error. Please check Supabase settings.";
-            break;
-          case 400:
-            message = "Invalid email or password";
-            break;
-          default:
-            message = error.message;
+        if (error.status === 500) {
+          message = "Authentication configuration error. Please check Supabase URL settings.";
+        } else {
+          message = error.message;
         }
       }
       
       setError(message);
-      toast({ title: "Error", description: message, variant: "destructive" });
+      toast({ 
+        title: "Error", 
+        description: message, 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
