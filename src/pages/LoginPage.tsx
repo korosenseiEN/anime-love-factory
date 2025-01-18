@@ -21,20 +21,28 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // First, attempt to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
-      if (authError) throw authError;
-      if (!authData.session) throw new Error("No session data");
+      if (signInError) throw signInError;
 
-      const { data: profile } = await supabase
+      // Then get the session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error("No session data");
+
+      // Finally get the profile
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", authData.session.user.id)
-        .single();
+        .eq("id", session.user.id)
+        .maybeSingle();
 
+      if (profileError) throw profileError;
       if (!profile) throw new Error("Profile not found");
 
       navigate(profile.role === "admin" ? "/admin" : "/");
