@@ -26,7 +26,13 @@ const LoginPage = () => {
         password: password.trim(),
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError instanceof AuthApiError && authError.status === 500) {
+          throw new Error("Authentication configuration error. Please ensure Site URL and Redirect URLs are properly set in Supabase.");
+        }
+        throw authError;
+      }
+
       if (!session) throw new Error("No session returned");
 
       const { data: profile } = await supabase
@@ -38,9 +44,23 @@ const LoginPage = () => {
       navigate(profile?.role === "admin" ? "/admin" : "/");
       toast({ title: "Success", description: "Logged in successfully" });
     } catch (error) {
-      const message = error instanceof AuthApiError && error.status === 500
-        ? "Please check Supabase authentication settings"
-        : "Invalid email or password";
+      let message = "An unexpected error occurred";
+      
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (error instanceof AuthApiError) {
+        switch (error.status) {
+          case 500:
+            message = "Authentication configuration error. Please check Supabase settings.";
+            break;
+          case 400:
+            message = "Invalid email or password";
+            break;
+          default:
+            message = error.message;
+        }
+      }
+      
       setError(message);
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
