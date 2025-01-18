@@ -21,47 +21,57 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
+      console.log("Attempting login...");
       const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (authError) {
+        console.error("Auth error:", authError);
         if (authError instanceof AuthApiError) {
-          if (authError.status === 500) {
-            throw new Error("Authentication configuration error. Please ensure Site URL and Redirect URLs are properly set in Supabase.");
-          }
-          switch (authError.message) {
-            case "Invalid login credentials":
+          switch (authError.status) {
+            case 400:
               throw new Error("Invalid email or password. Please check your credentials.");
+            case 422:
+              throw new Error("Email format is invalid.");
+            case 500:
+              throw new Error("Server error. Please try again later.");
             default:
-              throw authError;
+              throw new Error(authError.message);
           }
         }
         throw authError;
       }
 
-      if (!session) throw new Error("No session returned");
+      if (!session) {
+        console.error("No session returned");
+        throw new Error("Login failed. Please try again.");
+      }
 
-      const { data: profile } = await supabase
+      console.log("Session obtained, fetching profile...");
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", session.user.id)
         .single();
 
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        throw new Error("Failed to fetch user profile");
+      }
+
+      console.log("Login successful, navigating...");
       navigate(profile?.role === "admin" ? "/admin" : "/");
       toast({ title: "Success", description: "Logged in successfully" });
     } catch (error) {
+      console.error("Login error:", error);
       let message = "An unexpected error occurred";
       
       if (error instanceof Error) {
         message = error.message;
       } else if (error instanceof AuthApiError) {
-        if (error.status === 500) {
-          message = "Authentication configuration error. Please check Supabase URL settings.";
-        } else {
-          message = error.message;
-        }
+        message = error.message;
       }
       
       setError(message);
