@@ -21,6 +21,15 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
+      console.log("Starting login process...");
+      
+      // First, try to get the session to ensure auth is working
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error("Session check failed:", sessionError);
+        throw sessionError;
+      }
+      
       console.log("Attempting login with email:", email);
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -31,16 +40,15 @@ const LoginPage = () => {
         console.error("Auth error details:", {
           status: authError.status,
           message: authError.message,
-          name: authError.name
+          name: authError.name,
+          code: authError instanceof AuthApiError ? authError.code : 'unknown'
         });
 
-        // Handle database-specific errors
         if (authError.message.includes("Database error") || 
             authError.message.includes("unexpected_failure")) {
           throw new Error("There was a problem connecting to the authentication service. Please try again later.");
         }
 
-        // Handle other auth errors
         if (authError instanceof AuthApiError) {
           switch (authError.status) {
             case 400:
@@ -57,7 +65,7 @@ const LoginPage = () => {
       }
 
       if (!data.session) {
-        console.error("No session returned");
+        console.error("No session returned after successful login");
         throw new Error("Login failed. Please try again.");
       }
 
@@ -74,7 +82,7 @@ const LoginPage = () => {
       }
 
       if (!profile) {
-        console.error("No profile found");
+        console.error("No profile found for user");
         throw new Error("User profile not found. Please contact support.");
       }
 
@@ -86,7 +94,7 @@ const LoginPage = () => {
         duration: 3000
       });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Login process failed:", error);
       let message = "An unexpected error occurred. Please try again.";
       
       if (error instanceof Error) {
@@ -122,6 +130,7 @@ const LoginPage = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          className="w-full"
         />
         <Input
           type="password"
@@ -129,6 +138,7 @@ const LoginPage = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          className="w-full"
         />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Loading..." : "Login"}
