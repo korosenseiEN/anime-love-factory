@@ -21,14 +21,26 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      console.log("Attempting login...");
-      const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
+      console.log("Attempting login with email:", email);
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (authError) {
-        console.error("Auth error:", authError);
+        console.error("Auth error details:", {
+          status: authError.status,
+          message: authError.message,
+          name: authError.name
+        });
+
+        // Handle database-specific errors
+        if (authError.message.includes("Database error") || 
+            authError.message.includes("unexpected_failure")) {
+          throw new Error("There was a problem connecting to the authentication service. Please try again later.");
+        }
+
+        // Handle other auth errors
         if (authError instanceof AuthApiError) {
           switch (authError.status) {
             case 400:
@@ -36,7 +48,7 @@ const LoginPage = () => {
             case 422:
               throw new Error("Email format is invalid.");
             case 500:
-              throw new Error("Server error. Please try again later.");
+              throw new Error("Authentication service is temporarily unavailable. Please try again later.");
             default:
               throw new Error(authError.message);
           }
@@ -44,7 +56,7 @@ const LoginPage = () => {
         throw authError;
       }
 
-      if (!session) {
+      if (!data.session) {
         console.error("No session returned");
         throw new Error("Login failed. Please try again.");
       }
@@ -53,20 +65,29 @@ const LoginPage = () => {
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", session.user.id)
-        .single();
+        .eq("id", data.session.user.id)
+        .maybeSingle();
 
       if (profileError) {
         console.error("Profile fetch error:", profileError);
-        throw new Error("Failed to fetch user profile");
+        throw new Error("Failed to fetch user profile. Please try again.");
+      }
+
+      if (!profile) {
+        console.error("No profile found");
+        throw new Error("User profile not found. Please contact support.");
       }
 
       console.log("Login successful, navigating...");
-      navigate(profile?.role === "admin" ? "/admin" : "/");
-      toast({ title: "Success", description: "Logged in successfully" });
+      navigate(profile.role === "admin" ? "/admin" : "/");
+      toast({ 
+        title: "Success", 
+        description: "Logged in successfully",
+        duration: 3000
+      });
     } catch (error) {
       console.error("Login error:", error);
-      let message = "An unexpected error occurred";
+      let message = "An unexpected error occurred. Please try again.";
       
       if (error instanceof Error) {
         message = error.message;
@@ -78,7 +99,8 @@ const LoginPage = () => {
       toast({ 
         title: "Error", 
         description: message, 
-        variant: "destructive" 
+        variant: "destructive",
+        duration: 5000
       });
     } finally {
       setLoading(false);
