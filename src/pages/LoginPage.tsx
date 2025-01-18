@@ -25,33 +25,39 @@ const LoginPage = () => {
         throw new Error("Please enter both email and password");
       }
 
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      // Step 1: Authenticate user
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (signInError) {
-        console.error("Sign in error:", signInError);
+        console.error("Authentication error:", signInError);
         throw signInError;
       }
 
-      if (!data?.user) {
-        throw new Error("Login failed - please try again");
+      if (!authData?.user) {
+        throw new Error("Authentication failed - please try again");
       }
 
-      // Get user profile - using maybeSingle() to handle no results gracefully
+      // Step 2: Wait a brief moment for the trigger to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 3: Fetch user profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", data.user.id)
-        .maybeSingle();
+        .eq("id", authData.user.id)
+        .single();
 
       if (profileError) {
         console.error("Profile fetch error:", profileError);
-        throw profileError;
+        // Don't throw here, just default to user role
+        navigate("/");
+        return;
       }
 
-      // Navigate based on role - default to regular user route if no profile found
+      // Navigate based on role
       navigate(profile?.role === "admin" ? "/admin" : "/");
       
       toast({ 
@@ -75,7 +81,7 @@ const LoginPage = () => {
             message = "Email and password are required";
             break;
           case 500:
-            message = "Server error. Please try again later";
+            message = "Server error. Please try again in a moment";
             break;
           default:
             message = error.message;
