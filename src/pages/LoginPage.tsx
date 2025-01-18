@@ -15,34 +15,6 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const getErrorMessage = (error: AuthError) => {
-    console.error("Authentication error details:", {
-      status: error instanceof AuthApiError ? error.status : null,
-      message: error.message,
-      name: error.name,
-      stack: error.stack,
-      code: error instanceof AuthApiError ? error.status : 'unknown',
-      body: error instanceof AuthApiError ? error.message : undefined
-    });
-
-    if (error instanceof AuthApiError) {
-      switch (error.status) {
-        case 500:
-          if (error.message.includes("Database error querying schema")) {
-            return "Authentication configuration error: Please ensure the Site URL and Redirect URLs are configured in your Supabase project under Authentication > URL Configuration. For local development, use http://localhost:5173";
-          }
-          return "An unexpected server error occurred. Please try again later. Error code: SERVER_500";
-        case 400:
-          return "Invalid email or password. Please check your credentials and try again.";
-        case 404:
-          return "Authentication service not found. Please try again later. Error code: SERVICE_404";
-        default:
-          return `Authentication error (${error.status}): ${error.message}`;
-      }
-    }
-    return `Unexpected error: ${error.message}`;
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -55,36 +27,22 @@ const LoginPage = () => {
       });
 
       if (authError) throw authError;
-
       if (!session) throw new Error("No session returned");
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", session.user.id)
-        .maybeSingle();
+        .single();
 
-      if (profileError) throw profileError;
-
-      if (profile?.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/");
-      }
-
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      });
+      navigate(profile?.role === "admin" ? "/admin" : "/");
+      toast({ title: "Success", description: "Logged in successfully" });
     } catch (error) {
-      console.error("Login error:", error);
-      const errorMessage = error instanceof AuthError ? getErrorMessage(error) : "Failed to login";
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      const message = error instanceof AuthApiError && error.status === 500
+        ? "Please check Supabase authentication settings"
+        : "Invalid email or password";
+      setError(message);
+      toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -99,32 +57,26 @@ const LoginPage = () => {
         </Alert>
       )}
       <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full"
-          />
-        </div>
-        <div>
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full"
-          />
-        </div>
+        <Input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <Input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Loading..." : "Login"}
         </Button>
       </form>
     </div>
   );
-}
+};
 
 export default LoginPage;

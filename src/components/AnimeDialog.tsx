@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { Heart, HeartOff } from "lucide-react";
+import { useState, useEffect } from "react";
 
 type Anime = Tables<"anime">;
 
@@ -16,14 +18,35 @@ interface AnimeDialogProps {
 export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isFavorited, setIsFavorited] = useState(false);
 
-  const handleAddToFavorites = async () => {
+  useEffect(() => {
+    checkIfFavorited();
+  }, [anime]);
+
+  const checkIfFavorited = async () => {
+    if (!anime) return;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data: favorite } = await supabase
+      .from("favorites")
+      .select()
+      .eq("user_id", session.user.id)
+      .eq("anime_id", anime.id)
+      .maybeSingle();
+
+    setIsFavorited(!!favorite);
+  };
+
+  const handleFavoriteToggle = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
       toast({
         title: "Authentication required",
-        description: "Please login to add favorites",
+        description: "Please login to manage favorites",
         variant: "destructive",
       });
       navigate("/login");
@@ -32,101 +55,38 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
 
     if (!anime) return;
 
-    try {
-      // First check if this anime exists in the database
-      const { data: existingAnime, error: animeError } = await supabase
-        .from("anime")
-        .select("id")
-        .eq("mal_id", anime.mal_id)
-        .maybeSingle();
-
-      if (animeError) {
-        console.error("Error checking anime existence:", animeError);
-        toast({
-          title: "Error",
-          description: "Failed to check if anime exists",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      let animeId;
-      
-      if (!existingAnime) {
-        // If anime doesn't exist, insert it first
-        const { data: newAnime, error: insertError } = await supabase
-          .from("anime")
-          .insert([{
-            mal_id: anime.mal_id,
-            title: anime.title,
-            synopsis: anime.synopsis,
-            score: anime.score,
-            image_url: anime.image_url,
-            video_url: anime.video_url
-          }])
-          .select("id")
-          .single();
-
-        if (insertError) {
-          console.error("Error inserting anime:", insertError);
-          toast({
-            title: "Error",
-            description: "Failed to add anime to database",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        animeId = newAnime.id;
-      } else {
-        animeId = existingAnime.id;
-      }
-
-      // Check if this anime is already in user's favorites
-      const { data: existingFavorite, error: favoriteCheckError } = await supabase
+    if (isFavorited) {
+      // Remove from favorites
+      const { error } = await supabase
         .from("favorites")
-        .select()
+        .delete()
         .eq("user_id", session.user.id)
-        .eq("anime_id", animeId)
-        .maybeSingle();
+        .eq("anime_id", anime.id);
 
-      if (favoriteCheckError) {
-        console.error("Error checking existing favorite:", favoriteCheckError);
+      if (error) {
         toast({
           title: "Error",
-          description: "Failed to check existing favorites",
+          description: "Failed to remove from favorites",
           variant: "destructive",
         });
         return;
       }
 
-      if (existingFavorite) {
-        toast({
-          title: "Already in favorites",
-          description: "This anime is already in your favorites list",
-        });
-        return;
-      }
-
+      setIsFavorited(false);
+      toast({
+        title: "Success",
+        description: "Removed from favorites",
+      });
+    } else {
       // Add to favorites
-      const { error: favoriteError } = await supabase
+      const { error } = await supabase
         .from("favorites")
         .insert([{ 
-          anime_id: animeId,
+          anime_id: anime.id,
           user_id: session.user.id 
         }]);
 
-      if (favoriteError) {
-        // Check if it's a duplicate error
-        if (favoriteError.code === "23505") {
-          toast({
-            title: "Already in favorites",
-            description: "This anime is already in your favorites list",
-          });
-          return;
-        }
-        
-        console.error("Error adding to favorites:", favoriteError);
+      if (error) {
         toast({
           title: "Error",
           description: "Failed to add to favorites",
@@ -135,16 +95,10 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
         return;
       }
 
+      setIsFavorited(true);
       toast({
         title: "Success",
         description: "Added to favorites",
-      });
-    } catch (error) {
-      console.error("Unexpected error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
       });
     }
   };
@@ -187,8 +141,22 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
                 />
               </div>
             )}
-            <Button onClick={handleAddToFavorites} className="w-full">
-              Add to Favorites
+            <Button 
+              onClick={handleFavoriteToggle} 
+              className="w-full flex items-center justify-center gap-2"
+              variant={isFavorited ? "destructive" : "default"}
+            >
+              {isFavorited ? (
+                <>
+                  <HeartOff className="w-5 h-5" />
+                  Remove from Favorites
+                </>
+              ) : (
+                <>
+                  <Heart className="w-5 h-5" />
+                  Add to Favorites
+                </>
+              )}
             </Button>
           </div>
         </div>
