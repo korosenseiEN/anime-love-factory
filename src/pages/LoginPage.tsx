@@ -23,70 +23,34 @@ const LoginPage = () => {
     try {
       console.log("Starting login process...");
       
-      // First, try to get the session to ensure auth is working
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error("Session check failed:", sessionError);
-        throw sessionError;
-      }
-      
-      console.log("Attempting login with email:", email);
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (authError) {
-        console.error("Auth error details:", {
-          status: authError.status,
-          message: authError.message,
-          name: authError.name,
-          code: authError instanceof AuthApiError ? authError.code : 'unknown'
-        });
-
-        if (authError.message.includes("Database error") || 
-            authError.message.includes("unexpected_failure")) {
-          throw new Error("There was a problem connecting to the authentication service. Please try again later.");
-        }
-
-        if (authError instanceof AuthApiError) {
-          switch (authError.status) {
-            case 400:
-              throw new Error("Invalid email or password. Please check your credentials.");
-            case 422:
-              throw new Error("Email format is invalid.");
-            case 500:
-              throw new Error("Authentication service is temporarily unavailable. Please try again later.");
-            default:
-              throw new Error(authError.message);
-          }
-        }
+        console.error("Auth error:", authError);
         throw authError;
       }
 
       if (!data.session) {
-        console.error("No session returned after successful login");
         throw new Error("Login failed. Please try again.");
       }
 
-      console.log("Session obtained, fetching profile...");
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", data.session.user.id)
-        .maybeSingle();
+        .single();
 
       if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        throw new Error("Failed to fetch user profile. Please try again.");
+        throw profileError;
       }
 
       if (!profile) {
-        console.error("No profile found for user");
         throw new Error("User profile not found. Please contact support.");
       }
 
-      console.log("Login successful, navigating...");
       navigate(profile.role === "admin" ? "/admin" : "/");
       toast({ 
         title: "Success", 
@@ -94,19 +58,30 @@ const LoginPage = () => {
         duration: 3000
       });
     } catch (error) {
-      console.error("Login process failed:", error);
       let message = "An unexpected error occurred. Please try again.";
       
-      if (error instanceof Error) {
-        message = error.message;
-      } else if (error instanceof AuthApiError) {
+      if (error instanceof AuthApiError) {
+        switch (error.status) {
+          case 400:
+            message = "Invalid email or password";
+            break;
+          case 422:
+            message = "Invalid email format";
+            break;
+          case 500:
+            message = "Authentication service is temporarily unavailable";
+            break;
+          default:
+            message = error.message;
+        }
+      } else if (error instanceof Error) {
         message = error.message;
       }
       
       setError(message);
       toast({ 
         title: "Error", 
-        description: message, 
+        description: message,
         variant: "destructive",
         duration: 5000
       });
