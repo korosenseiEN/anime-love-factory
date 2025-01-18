@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AnimeForm } from "@/components/admin/AnimeForm";
+import { Separator } from "@/components/ui/separator";
 
 type Anime = Tables<"anime">;
 
@@ -41,11 +42,32 @@ const AdminPage = () => {
   useEffect(() => {
     if (session) {
       fetchAnimes();
+      
+      // Subscribe to real-time updates
+      const channel = supabase
+        .channel('anime_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'anime' },
+          (payload) => {
+            console.log('Change received!', payload);
+            fetchAnimes(); // Refresh the data when changes occur
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [session]);
 
   const fetchAnimes = async () => {
-    const { data, error } = await supabase.from("anime").select("*");
+    const { data, error } = await supabase
+      .from("anime")
+      .select("*")
+      .order('title', { ascending: true });
+
     if (error) {
       toast({
         title: "Error",
@@ -76,7 +98,6 @@ const AdminPage = () => {
       title: "Success",
       description: "Anime updated successfully",
     });
-    fetchAnimes();
   };
 
   const handleVideoUpload = async (id: number, file: File) => {
@@ -117,7 +138,11 @@ const AdminPage = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   if (!session) {
@@ -137,12 +162,14 @@ const AdminPage = () => {
       <AdminHeader onSignOut={handleSignOut} />
       <div className="space-y-8">
         {animes.map((anime) => (
-          <AnimeForm
-            key={anime.id}
-            anime={anime}
-            onUpdate={handleUpdate}
-            onVideoUpload={handleVideoUpload}
-          />
+          <div key={anime.id} className="space-y-4">
+            <AnimeForm
+              anime={anime}
+              onUpdate={handleUpdate}
+              onVideoUpload={handleVideoUpload}
+            />
+            <Separator className="my-8" />
+          </div>
         ))}
       </div>
     </div>
