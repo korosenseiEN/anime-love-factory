@@ -21,35 +21,21 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      console.log("Starting login process...");
-      
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
-      if (authError) {
-        console.error("Auth error:", authError);
-        throw authError;
-      }
+      if (authError) throw authError;
+      if (!authData.session) throw new Error("No session data");
 
-      if (!data.session) {
-        throw new Error("Login failed. Please try again.");
-      }
-
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
-        .eq("id", data.session.user.id)
+        .eq("id", authData.session.user.id)
         .single();
 
-      if (profileError) {
-        throw profileError;
-      }
-
-      if (!profile) {
-        throw new Error("User profile not found. Please contact support.");
-      }
+      if (!profile) throw new Error("Profile not found");
 
       navigate(profile.role === "admin" ? "/admin" : "/");
       toast({ 
@@ -58,7 +44,7 @@ const LoginPage = () => {
         duration: 3000
       });
     } catch (error) {
-      let message = "An unexpected error occurred. Please try again.";
+      let message = "An unexpected error occurred";
       
       if (error instanceof AuthApiError) {
         switch (error.status) {
