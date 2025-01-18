@@ -21,12 +21,10 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      // First, check if the email and password are provided
       if (!email.trim() || !password.trim()) {
         throw new Error("Please enter both email and password");
       }
 
-      // Attempt to sign in
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
@@ -38,10 +36,10 @@ const LoginPage = () => {
       }
 
       if (!data?.user) {
-        throw new Error("No user data returned");
+        throw new Error("Login failed - please try again");
       }
 
-      // Get user profile
+      // Get user profile - using maybeSingle() to handle no results gracefully
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
@@ -53,7 +51,7 @@ const LoginPage = () => {
         throw profileError;
       }
 
-      // Navigate based on user role
+      // Navigate based on role - default to regular user route if no profile found
       navigate(profile?.role === "admin" ? "/admin" : "/");
       
       toast({ 
