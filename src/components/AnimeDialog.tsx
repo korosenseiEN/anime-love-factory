@@ -37,9 +37,9 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
       .from("anime")
       .select("id")
       .eq("mal_id", anime.mal_id)
-      .single();
+      .maybeSingle();
 
-    if (fetchError && fetchError.code !== "PGRST116") {
+    if (fetchError) {
       console.error("Error checking anime:", fetchError);
       return;
     }
@@ -82,7 +82,7 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
       .from("anime")
       .select("id")
       .eq("mal_id", anime.mal_id)
-      .single();
+      .maybeSingle();
 
     if (!existingAnime) return;
 
