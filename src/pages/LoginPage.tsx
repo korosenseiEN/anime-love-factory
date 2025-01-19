@@ -25,7 +25,14 @@ const LoginPage = () => {
         throw new Error("Please enter both email and password");
       }
 
-      console.log("Attempting login with email:", email); // Debug log
+      // Check if we can connect to Supabase
+      const { data: healthCheck, error: healthError } = await supabase.from('profiles').select('count').limit(1);
+      if (healthError) {
+        console.error("Database health check failed:", healthError);
+        throw new Error("Unable to connect to the database. Please try again later.");
+      }
+
+      console.log("Database connection successful, attempting login with email:", email);
 
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -33,82 +40,73 @@ const LoginPage = () => {
       });
 
       if (signInError) {
-        console.error("Sign in error details:", {
+        console.error("Sign in error:", {
           status: signInError.status,
           message: signInError.message,
           name: signInError.name,
-          code: 'code' in signInError ? signInError.code : undefined
+          code: signInError instanceof AuthApiError ? signInError.code : undefined
         });
 
         if (signInError instanceof AuthApiError) {
           switch (signInError.status) {
             case 400:
-              throw new Error("Invalid email or password. Please check your credentials and try again.");
+              throw new Error("Invalid email or password");
+            case 422:
+              throw new Error("Missing email or password");
             case 500:
-              console.error("Server error details:", signInError);
-              throw new Error("We're experiencing technical difficulties. Please try again in a few minutes.");
+              throw new Error("Server error - please try again later");
             default:
-              throw signInError;
+              throw new Error(signInError.message);
           }
         }
         throw signInError;
       }
 
       if (!authData?.user) {
-        throw new Error("Authentication failed - please try again");
+        throw new Error("Login failed - please try again");
       }
 
-      console.log("Authentication successful, user:", authData.user.id); // Debug log
+      console.log("Authentication successful, fetching user profile...");
 
-      // Wait a brief moment for the trigger to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch user profile with retry
+      let profile = null;
+      let retryCount = 0;
+      while (retryCount < 3) {
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", authData.user.id)
+          .single();
 
-      // Fetch user profile
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", authData.user.id)
-        .single();
+        if (profileError) {
+          console.warn(`Profile fetch attempt ${retryCount + 1} failed:`, profileError);
+          retryCount++;
+          if (retryCount < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            continue;
+          }
+          throw new Error("Could not fetch user profile");
+        }
 
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        // Don't throw here, just default to user role
-        navigate("/");
-        return;
+        profile = profileData;
+        break;
       }
 
-      console.log("Profile fetched successfully:", profile); // Debug log
+      console.log("Profile fetched successfully:", profile);
 
       // Navigate based on role
       navigate(profile?.role === "admin" ? "/admin" : "/");
       
       toast({ 
         title: "Success", 
-        description: "Logged in successfully",
-        duration: 3000
+        description: "Logged in successfully"
       });
     } catch (error) {
       console.error("Login error:", error);
       let message = "An unexpected error occurred";
       
       if (error instanceof AuthApiError) {
-        switch (error.status) {
-          case 400:
-            message = "Invalid email or password. Please check your credentials and try again.";
-            break;
-          case 401:
-            message = "Invalid login credentials";
-            break;
-          case 422:
-            message = "Email and password are required";
-            break;
-          case 500:
-            message = "We're experiencing technical difficulties. Please try again in a few minutes.";
-            console.error("Server error details:", error);
-            break;
-          default:
-            message = error.message;
-        }
+        message = error.message;
       } else if (error instanceof Error) {
         message = error.message;
       }
@@ -117,8 +115,7 @@ const LoginPage = () => {
       toast({ 
         title: "Error", 
         description: message,
-        variant: "destructive",
-        duration: 5000
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
