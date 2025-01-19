@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tables } from "@/integrations/supabase/types";
 
@@ -12,7 +11,7 @@ interface AnimeCardProps {
 export function AnimeCard({ anime, onClick }: AnimeCardProps) {
   return (
     <Card 
-      className="anime-card cursor-pointer"
+      className="anime-card cursor-pointer relative group"
       onClick={() => onClick(anime)}
     >
       <CardContent className="p-0">
@@ -23,8 +22,8 @@ export function AnimeCard({ anime, onClick }: AnimeCardProps) {
             className="w-full h-[300px] object-cover rounded-t-lg"
             loading="lazy"
           />
-          <div className="anime-card-overlay">
-            <h3 className="text-xl font-bold text-white mb-2 truncate">
+          <div className="anime-card-overlay absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-4 overflow-y-auto">
+            <h3 className="text-xl font-bold text-white mb-2">
               {anime.title}
             </h3>
             {anime.score && (
@@ -32,7 +31,7 @@ export function AnimeCard({ anime, onClick }: AnimeCardProps) {
                 Score: {anime.score}
               </p>
             )}
-            <p className="text-sm text-white/90 line-clamp-2">
+            <p className="text-sm text-white/90">
               {anime.synopsis}
             </p>
           </div>
