@@ -85,7 +85,6 @@ export const AnimeForm = ({
 
         {!isCreating && (
           <AnimeSelector
-            animes={animes}
             selectedAnimeId={selectedAnimeId}
             onAnimeSelect={setSelectedAnimeId}
           />

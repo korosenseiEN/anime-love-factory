@@ -15,6 +15,10 @@ export const AnimeSelector = ({ selectedAnimeId, onAnimeSelect }: AnimeSelectorP
     return <div>Loading animes...</div>;
   }
 
+  if (!animes) {
+    return <div>No animes found</div>;
+  }
+
   return (
     <div className="space-y-4">
       <Label>Select Anime to Edit</Label>
@@ -27,7 +31,7 @@ export const AnimeSelector = ({ selectedAnimeId, onAnimeSelect }: AnimeSelectorP
         </SelectTrigger>
         <SelectContent>
           <ScrollArea className="h-[200px]">
-            {animes?.map((anime) => (
+            {animes.map((anime) => (
               <SelectItem key={anime.id} value={anime.id.toString()}>
                 {anime.title}
               </SelectItem>
