@@ -1,6 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tables } from "@/integrations/supabase/types";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Anime = Tables<"anime">;
 
@@ -22,11 +23,13 @@ export const AnimeSelector = ({ animes, selectedAnimeId, onAnimeSelect }: AnimeS
           <SelectValue placeholder="Select an anime..." />
         </SelectTrigger>
         <SelectContent>
-          {animes.map((anime) => (
-            <SelectItem key={anime.id} value={anime.id.toString()}>
-              {anime.title}
-            </SelectItem>
-          ))}
+          <ScrollArea className="h-[200px]">
+            {animes.map((anime) => (
+              <SelectItem key={anime.id} value={anime.id.toString()}>
+                {anime.title}
+              </SelectItem>
+            ))}
+          </ScrollArea>
         </SelectContent>
       </Select>
     </div>

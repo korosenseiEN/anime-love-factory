@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Tables } from "@/integrations/supabase/types";
 import { AnimeFormHeader } from "./AnimeFormHeader";
 import { AnimeSelector } from "./AnimeSelector";
 import { AnimeEditForm } from "./AnimeEditForm";
 import { CreateAnimeForm } from "./CreateAnimeForm";
+import { supabase } from "@/integrations/supabase/client";
 
 type Anime = Tables<"anime">;
 
@@ -25,17 +26,45 @@ export const AnimeForm = ({
 }: AnimeFormProps) => {
   const [selectedAnimeId, setSelectedAnimeId] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const selectedAnime = animes.find((a) => a.id.toString() === selectedAnimeId);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('anime_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'anime' },
+        (payload) => {
+          console.log('Change received!', payload);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const handleUpdate = async (updates: Partial<Anime>) => {
     if (!selectedAnime) return;
-    await onUpdate(selectedAnime.id, updates);
+    setIsSaving(true);
+    try {
+      await onUpdate(selectedAnime.id, updates);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleVideoUpload = async (file: File) => {
     if (!selectedAnime) return;
-    await onVideoUpload(selectedAnime.id, file);
+    setIsSaving(true);
+    try {
+      await onVideoUpload(selectedAnime.id, file);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -74,6 +103,7 @@ export const AnimeForm = ({
             anime={selectedAnime}
             onUpdate={handleUpdate}
             onVideoUpload={handleVideoUpload}
+            isSaving={isSaving}
           />
         ) : null}
       </div>
