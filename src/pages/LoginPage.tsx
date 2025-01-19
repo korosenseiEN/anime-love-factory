@@ -25,18 +25,28 @@ const LoginPage = () => {
         throw new Error("Please enter both email and password");
       }
 
+      console.log("Attempting login with email:", email); // Debug log
+
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (signInError) {
+        console.error("Sign in error details:", {
+          status: signInError.status,
+          message: signInError.message,
+          name: signInError.name,
+          code: 'code' in signInError ? signInError.code : undefined
+        });
+
         if (signInError instanceof AuthApiError) {
           switch (signInError.status) {
             case 400:
               throw new Error("Invalid email or password. Please check your credentials and try again.");
             case 500:
-              throw new Error("Server error. Please try again in a few minutes. If the problem persists, contact support.");
+              console.error("Server error details:", signInError);
+              throw new Error("We're experiencing technical difficulties. Please try again in a few minutes.");
             default:
               throw signInError;
           }
@@ -47,6 +57,8 @@ const LoginPage = () => {
       if (!authData?.user) {
         throw new Error("Authentication failed - please try again");
       }
+
+      console.log("Authentication successful, user:", authData.user.id); // Debug log
 
       // Wait a brief moment for the trigger to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -64,6 +76,8 @@ const LoginPage = () => {
         navigate("/");
         return;
       }
+
+      console.log("Profile fetched successfully:", profile); // Debug log
 
       // Navigate based on role
       navigate(profile?.role === "admin" ? "/admin" : "/");
@@ -89,7 +103,8 @@ const LoginPage = () => {
             message = "Email and password are required";
             break;
           case 500:
-            message = "Server error. Please try again in a few minutes. If the problem persists, contact support.";
+            message = "We're experiencing technical difficulties. Please try again in a few minutes.";
+            console.error("Server error details:", error);
             break;
           default:
             message = error.message;
