@@ -25,14 +25,15 @@ const LoginPage = () => {
         throw new Error("Please enter both email and password");
       }
 
-      // Step 1: Authenticate user
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (signInError) {
-        console.error("Authentication error:", signInError);
+        if (signInError instanceof AuthApiError && signInError.status === 400) {
+          throw new Error("Invalid email or password. Please check your credentials and try again.");
+        }
         throw signInError;
       }
 
@@ -40,10 +41,10 @@ const LoginPage = () => {
         throw new Error("Authentication failed - please try again");
       }
 
-      // Step 2: Wait a brief moment for the trigger to complete
+      // Wait a brief moment for the trigger to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Step 3: Fetch user profile
+      // Fetch user profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
@@ -72,7 +73,7 @@ const LoginPage = () => {
       if (error instanceof AuthApiError) {
         switch (error.status) {
           case 400:
-            message = "Invalid email or password format";
+            message = "Invalid email or password. Please check your credentials and try again.";
             break;
           case 401:
             message = "Invalid login credentials";
