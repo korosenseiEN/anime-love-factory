@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isFavorited, setIsFavorited] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     checkIfFavorited();
@@ -41,6 +42,15 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
   };
 
   const handleFavoriteToggle = async () => {
+    if (!anime?.id) {
+      toast({
+        title: "Error",
+        description: "Invalid anime data",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
@@ -53,53 +63,50 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
       return;
     }
 
-    if (!anime) return;
+    setIsLoading(true);
 
-    if (isFavorited) {
-      // Remove from favorites
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", session.user.id)
-        .eq("anime_id", anime.id);
+    try {
+      if (isFavorited) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .eq("user_id", session.user.id)
+          .eq("anime_id", anime.id);
 
-      if (error) {
+        if (error) throw error;
+
+        setIsFavorited(false);
         toast({
-          title: "Error",
-          description: "Failed to remove from favorites",
-          variant: "destructive",
+          title: "Success",
+          description: "Removed from favorites",
         });
-        return;
-      }
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from("favorites")
+          .insert({
+            anime_id: anime.id,
+            user_id: session.user.id
+          });
 
-      setIsFavorited(false);
-      toast({
-        title: "Success",
-        description: "Removed from favorites",
-      });
-    } else {
-      // Add to favorites
-      const { error } = await supabase
-        .from("favorites")
-        .insert([{ 
-          anime_id: anime.id,
-          user_id: session.user.id 
-        }]);
+        if (error) throw error;
 
-      if (error) {
+        setIsFavorited(true);
         toast({
-          title: "Error",
-          description: "Failed to add to favorites",
-          variant: "destructive",
+          title: "Success",
+          description: "Added to favorites",
         });
-        return;
       }
-
-      setIsFavorited(true);
+    } catch (error: any) {
+      console.error("Favorite toggle error:", error);
       toast({
-        title: "Success",
-        description: "Added to favorites",
+        title: "Error",
+        description: error.message || "Failed to update favorites",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -110,6 +117,9 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold mb-4">{anime.title}</DialogTitle>
+          <DialogDescription>
+            View details and manage favorites for this anime
+          </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -145,8 +155,11 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
               onClick={handleFavoriteToggle} 
               className="w-full flex items-center justify-center gap-2"
               variant={isFavorited ? "destructive" : "default"}
+              disabled={isLoading}
             >
-              {isFavorited ? (
+              {isLoading ? (
+                <span>Processing...</span>
+              ) : isFavorited ? (
                 <>
                   <HeartOff className="w-5 h-5" />
                   Remove from Favorites
