@@ -42,7 +42,6 @@ const AdminPage = () => {
     if (session) {
       fetchAnimes();
       
-      // Subscribe to real-time updates
       const channel = supabase
         .channel('anime_changes')
         .on(
@@ -50,7 +49,7 @@ const AdminPage = () => {
           { event: '*', schema: 'public', table: 'anime' },
           (payload) => {
             console.log('Change received!', payload);
-            fetchAnimes(); // Refresh the data when changes occur
+            fetchAnimes();
           }
         )
         .subscribe();
@@ -100,9 +99,26 @@ const AdminPage = () => {
   };
 
   const handleCreate = async (anime: Partial<Anime>) => {
+    // Ensure required fields are present
+    if (!anime.title || !anime.mal_id) {
+      toast({
+        title: "Error",
+        description: "Title and MAL ID are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { error } = await supabase
       .from("anime")
-      .insert([anime]);
+      .insert({
+        title: anime.title,
+        mal_id: anime.mal_id,
+        synopsis: anime.synopsis,
+        score: anime.score,
+        image_url: anime.image_url,
+        video_url: anime.video_url,
+      });
 
     if (error) {
       toast({
