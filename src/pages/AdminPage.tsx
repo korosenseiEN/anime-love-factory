@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AnimeForm } from "@/components/admin/AnimeForm";
-import { Separator } from "@/components/ui/separator";
 
 type Anime = Tables<"anime">;
 
@@ -100,6 +99,47 @@ const AdminPage = () => {
     });
   };
 
+  const handleCreate = async (anime: Partial<Anime>) => {
+    const { error } = await supabase
+      .from("anime")
+      .insert([anime]);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create anime",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Anime created successfully",
+    });
+  };
+
+  const handleDelete = async (id: number) => {
+    const { error } = await supabase
+      .from("anime")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete anime",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Anime deleted successfully",
+    });
+  };
+
   const handleVideoUpload = async (id: number, file: File) => {
     const fileExt = file.name.split(".").pop();
     const filePath = `${id}/${crypto.randomUUID()}.${fileExt}`;
@@ -160,18 +200,13 @@ const AdminPage = () => {
   return (
     <div className="container mx-auto p-8">
       <AdminHeader onSignOut={handleSignOut} />
-      <div className="space-y-8">
-        {animes.map((anime) => (
-          <div key={anime.id} className="space-y-4">
-            <AnimeForm
-              anime={anime}
-              onUpdate={handleUpdate}
-              onVideoUpload={handleVideoUpload}
-            />
-            <Separator className="my-8" />
-          </div>
-        ))}
-      </div>
+      <AnimeForm
+        animes={animes}
+        onUpdate={handleUpdate}
+        onVideoUpload={handleVideoUpload}
+        onDelete={handleDelete}
+        onCreate={handleCreate}
+      />
     </div>
   );
 };
