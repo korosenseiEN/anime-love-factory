@@ -66,6 +66,30 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
     setIsLoading(true);
 
     try {
+      // First, ensure the anime exists in our database
+      const { data: existingAnime } = await supabase
+        .from("anime")
+        .select()
+        .eq("id", anime.id)
+        .maybeSingle();
+
+      if (!existingAnime) {
+        // Insert the anime if it doesn't exist
+        const { error: insertError } = await supabase
+          .from("anime")
+          .insert({
+            id: anime.id,
+            mal_id: anime.mal_id,
+            title: anime.title,
+            synopsis: anime.synopsis,
+            score: anime.score,
+            image_url: anime.image_url,
+            video_url: anime.video_url
+          });
+
+        if (insertError) throw insertError;
+      }
+
       if (isFavorited) {
         // Remove from favorites
         const { error } = await supabase
