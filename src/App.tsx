@@ -8,6 +8,7 @@ import Index from "@/pages/Index";
 import AdminPage from "@/pages/AdminPage";
 import LoginPage from "@/pages/LoginPage";
 import FavoritesPage from "@/pages/FavoritesPage";
+import VideoPlayerPage from "@/pages/VideoPlayerPage";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ function App() {
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
+              <Route path="/video/:id" element={<VideoPlayerPage />} />
             </Routes>
           </main>
           <Footer />
