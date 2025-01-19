@@ -21,10 +21,56 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
   const navigate = useNavigate();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [dbAnimeId, setDbAnimeId] = useState<number | null>(null);
 
   useEffect(() => {
-    checkIfFavorited();
+    if (anime) {
+      checkIfFavorited();
+      ensureAnimeInDatabase();
+    }
   }, [anime]);
+
+  const ensureAnimeInDatabase = async () => {
+    if (!anime) return;
+
+    const { data: existingAnime, error: fetchError } = await supabase
+      .from("anime")
+      .select("id")
+      .eq("mal_id", anime.mal_id)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      console.error("Error checking anime:", fetchError);
+      return;
+    }
+
+    if (existingAnime) {
+      setDbAnimeId(existingAnime.id);
+      return;
+    }
+
+    const { data: newAnime, error: insertError } = await supabase
+      .from("anime")
+      .insert({
+        mal_id: anime.mal_id,
+        title: anime.title,
+        synopsis: anime.synopsis,
+        score: anime.score,
+        image_url: anime.image_url,
+        video_url: anime.video_url
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Error inserting anime:", insertError);
+      return;
+    }
+
+    if (newAnime) {
+      setDbAnimeId(newAnime.id);
+    }
+  };
 
   const checkIfFavorited = async () => {
     if (!anime) return;
@@ -32,18 +78,26 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    const { data: existingAnime } = await supabase
+      .from("anime")
+      .select("id")
+      .eq("mal_id", anime.mal_id)
+      .single();
+
+    if (!existingAnime) return;
+
     const { data: favorite } = await supabase
       .from("favorites")
       .select()
       .eq("user_id", session.user.id)
-      .eq("anime_id", anime.id)
+      .eq("anime_id", existingAnime.id)
       .maybeSingle();
 
     setIsFavorited(!!favorite);
   };
 
   const handleFavoriteToggle = async () => {
-    if (!anime?.id) {
+    if (!anime) {
       toast({
         title: "Error",
         description: "Invalid anime data",
@@ -64,6 +118,15 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
       return;
     }
 
+    if (!dbAnimeId) {
+      toast({
+        title: "Error",
+        description: "Unable to process favorite. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -72,7 +135,7 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
           .from("favorites")
           .delete()
           .eq("user_id", session.user.id)
-          .eq("anime_id", anime.id);
+          .eq("anime_id", dbAnimeId);
 
         if (error) throw error;
 
@@ -85,7 +148,7 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
         const { error } = await supabase
           .from("favorites")
           .insert({
-            anime_id: anime.id,
+            anime_id: dbAnimeId,
             user_id: session.user.id
           });
 
