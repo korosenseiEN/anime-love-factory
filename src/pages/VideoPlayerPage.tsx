@@ -12,10 +12,12 @@ const VideoPlayerPage = () => {
   const { data: anime, isLoading } = useQuery({
     queryKey: ["anime", id],
     queryFn: async () => {
+      if (!id) throw new Error("No ID provided");
+      
       const { data, error } = await supabase
         .from("anime")
         .select("*")
-        .eq("id", id)
+        .eq("id", parseInt(id))
         .single();
 
       if (error) throw error;
