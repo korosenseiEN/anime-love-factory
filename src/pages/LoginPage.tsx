@@ -31,8 +31,15 @@ const LoginPage = () => {
       });
 
       if (signInError) {
-        if (signInError instanceof AuthApiError && signInError.status === 400) {
-          throw new Error("Invalid email or password. Please check your credentials and try again.");
+        if (signInError instanceof AuthApiError) {
+          switch (signInError.status) {
+            case 400:
+              throw new Error("Invalid email or password. Please check your credentials and try again.");
+            case 500:
+              throw new Error("Server error. Please try again in a few minutes. If the problem persists, contact support.");
+            default:
+              throw signInError;
+          }
         }
         throw signInError;
       }
@@ -82,7 +89,7 @@ const LoginPage = () => {
             message = "Email and password are required";
             break;
           case 500:
-            message = "Server error. Please try again in a moment";
+            message = "Server error. Please try again in a few minutes. If the problem persists, contact support.";
             break;
           default:
             message = error.message;
