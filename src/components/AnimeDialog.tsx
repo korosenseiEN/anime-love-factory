@@ -1,11 +1,12 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent as UIDialogContent } from "@/components/ui/dialog";
 import { Tables } from "@/integrations/supabase/types";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Heart, HeartOff } from "lucide-react";
 import { useState, useEffect } from "react";
+import { DialogHeader } from "./dialog/DialogHeader";
+import { DialogContent } from "./dialog/DialogContent";
+import { DialogActions } from "./dialog/DialogActions";
 
 type Anime = Tables<"anime">;
 
@@ -66,32 +67,7 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
     setIsLoading(true);
 
     try {
-      // First, ensure the anime exists in our database
-      const { data: existingAnime } = await supabase
-        .from("anime")
-        .select()
-        .eq("id", anime.id)
-        .maybeSingle();
-
-      if (!existingAnime) {
-        // Insert the anime if it doesn't exist
-        const { error: insertError } = await supabase
-          .from("anime")
-          .insert({
-            id: anime.id,
-            mal_id: anime.mal_id,
-            title: anime.title,
-            synopsis: anime.synopsis,
-            score: anime.score,
-            image_url: anime.image_url,
-            video_url: anime.video_url
-          });
-
-        if (insertError) throw insertError;
-      }
-
       if (isFavorited) {
-        // Remove from favorites
         const { error } = await supabase
           .from("favorites")
           .delete()
@@ -106,7 +82,6 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
           description: "Removed from favorites",
         });
       } else {
-        // Add to favorites
         const { error } = await supabase
           .from("favorites")
           .insert({
@@ -138,66 +113,16 @@ export function AnimeDialog({ anime, isOpen, onClose }: AnimeDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold mb-4">{anime.title}</DialogTitle>
-          <DialogDescription>
-            View details and manage favorites for this anime
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <img
-              src={anime.image_url || "/placeholder.svg"}
-              alt={anime.title}
-              className="w-full rounded-lg shadow-lg"
-            />
-          </div>
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Synopsis</h3>
-              <p className="text-base leading-relaxed text-foreground/90">{anime.synopsis}</p>
-            </div>
-            {anime.score && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Score</h3>
-                <p className="text-xl font-bold text-primary">{anime.score}</p>
-              </div>
-            )}
-            {anime.video_url && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Video Preview</h3>
-                <video
-                  src={anime.video_url}
-                  controls
-                  className="w-full rounded-lg"
-                  poster={anime.image_url || undefined}
-                />
-              </div>
-            )}
-            <Button 
-              onClick={handleFavoriteToggle} 
-              className="w-full flex items-center justify-center gap-2"
-              variant={isFavorited ? "destructive" : "default"}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span>Processing...</span>
-              ) : isFavorited ? (
-                <>
-                  <HeartOff className="w-5 h-5" />
-                  Remove from Favorites
-                </>
-              ) : (
-                <>
-                  <Heart className="w-5 h-5" />
-                  Add to Favorites
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
+      <UIDialogContent className="max-w-3xl">
+        <DialogHeader anime={anime} />
+        <DialogContent anime={anime} />
+        <DialogActions 
+          anime={anime}
+          isFavorited={isFavorited}
+          isLoading={isLoading}
+          onFavoriteToggle={handleFavoriteToggle}
+        />
+      </UIDialogContent>
     </Dialog>
   );
 }

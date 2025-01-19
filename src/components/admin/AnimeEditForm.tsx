@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
-import { BasicInfoSection } from "./BasicInfoSection";
-import { ImagePreviewSection } from "./ImagePreviewSection";
+import { FormFields } from "./FormFields";
 import { VideoUploadSection } from "./VideoUploadSection";
 import { Loader2 } from "lucide-react";
 
@@ -27,15 +26,9 @@ export const AnimeEditForm = ({
     score: anime.score || null,
     image_url: anime.image_url || "",
   });
-  const [imagePreview, setImagePreview] = useState<string | null>(anime.image_url);
 
   const handleChange = (field: keyof Anime, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleImagePreview = (url: string) => {
-    setImagePreview(url);
-    handleChange("image_url", url);
   };
 
   const handleSave = async () => {
@@ -44,18 +37,11 @@ export const AnimeEditForm = ({
 
   return (
     <div className="space-y-6">
-      <BasicInfoSection 
-        anime={anime} 
-        onChange={handleChange} 
+      <FormFields 
+        formData={formData}
+        onChange={handleChange}
       />
       
-      <ImagePreviewSection
-        anime={anime}
-        imagePreview={imagePreview}
-        onChange={handleChange}
-        onPreview={handleImagePreview}
-      />
-
       <VideoUploadSection
         anime={anime}
         onVideoUpload={onVideoUpload}

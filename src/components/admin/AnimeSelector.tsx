@@ -1,17 +1,20 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Tables } from "@/integrations/supabase/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-type Anime = Tables<"anime">;
+import { useAnimeList } from "@/hooks/useAnimeList";
 
 interface AnimeSelectorProps {
-  animes: Anime[];
   selectedAnimeId: string;
   onAnimeSelect: (id: string) => void;
 }
 
-export const AnimeSelector = ({ animes, selectedAnimeId, onAnimeSelect }: AnimeSelectorProps) => {
+export const AnimeSelector = ({ selectedAnimeId, onAnimeSelect }: AnimeSelectorProps) => {
+  const { data: animes, isLoading } = useAnimeList();
+
+  if (isLoading) {
+    return <div>Loading animes...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <Label>Select Anime to Edit</Label>
@@ -24,7 +27,7 @@ export const AnimeSelector = ({ animes, selectedAnimeId, onAnimeSelect }: AnimeS
         </SelectTrigger>
         <SelectContent>
           <ScrollArea className="h-[200px]">
-            {animes.map((anime) => (
+            {animes?.map((anime) => (
               <SelectItem key={anime.id} value={anime.id.toString()}>
                 {anime.title}
               </SelectItem>
