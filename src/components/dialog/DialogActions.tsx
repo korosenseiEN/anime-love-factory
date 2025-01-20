@@ -18,7 +18,7 @@ export function DialogActions({
   onFavoriteToggle 
 }: DialogActionsProps) {
   return (
-    <div className="sticky bottom-0 bg-background pt-4 border-t">
+    <div className="bg-background pt-4 border-t">
       <Button 
         onClick={onFavoriteToggle} 
         className="w-full flex items-center justify-center gap-2"
