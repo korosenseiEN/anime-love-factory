@@ -24,36 +24,56 @@ export const AnimeFormHeader = ({
   const handleFetchAnime = async () => {
     setIsFetching(true);
     try {
+      // First check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to fetch anime data",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const animeList = await fetchTopAnime();
       
       for (const anime of animeList) {
-        // Check if anime already exists
-        const { data: existingAnime } = await supabase
-          .from("anime")
-          .select("id")
-          .eq("mal_id", anime.mal_id)
-          .single();
-
-        if (!existingAnime) {
-          // Insert new anime
-          const { error } = await supabase
+        try {
+          // Check if anime already exists
+          const { data: existingAnime, error: selectError } = await supabase
             .from("anime")
-            .insert({
-              mal_id: anime.mal_id,
-              title: anime.title,
-              synopsis: anime.synopsis,
-              score: anime.score,
-              image_url: anime.images.jpg.large_image_url,
-            });
+            .select("id")
+            .eq("mal_id", anime.mal_id)
+            .maybeSingle();
 
-          if (error) {
-            console.error("Error inserting anime:", error);
-            toast({
-              title: "Error",
-              description: `Failed to save ${anime.title}`,
-              variant: "destructive",
-            });
+          if (selectError) {
+            console.error("Error checking existing anime:", selectError);
+            continue;
           }
+
+          if (!existingAnime) {
+            // Insert new anime
+            const { error: insertError } = await supabase
+              .from("anime")
+              .insert({
+                mal_id: anime.mal_id,
+                title: anime.title,
+                synopsis: anime.synopsis,
+                score: anime.score,
+                image_url: anime.images.jpg.large_image_url,
+              });
+
+            if (insertError) {
+              console.error("Error inserting anime:", insertError);
+              toast({
+                title: "Error",
+                description: `Failed to save ${anime.title}: ${insertError.message}`,
+                variant: "destructive",
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error processing anime:", error);
         }
       }
 
@@ -65,7 +85,7 @@ export const AnimeFormHeader = ({
       console.error("Error fetching anime:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch anime data",
+        description: "Failed to fetch anime data. Please try again.",
         variant: "destructive",
       });
     } finally {
