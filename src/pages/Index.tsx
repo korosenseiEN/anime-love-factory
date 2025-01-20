@@ -21,25 +21,26 @@ const Index = () => {
     queryKey: ["animes", debouncedQuery],
     queryFn: async () => {
       try {
-        let query = supabase.from("anime").select("*");
+        let query = supabase
+          .from("anime")
+          .select("*");
 
         if (debouncedQuery) {
           query = query.ilike("title", `%${debouncedQuery}%`);
         }
 
-        query = query.order("title", { ascending: true });
-
         const { data, error: supabaseError } = await query;
 
         if (supabaseError) {
           console.error("Supabase error:", supabaseError);
-          throw new Error(supabaseError.message);
+          throw supabaseError;
         }
 
         if (!data) {
           return [];
         }
 
+        console.log("Fetched anime:", data); // Debug log
         return data as Anime[];
       } catch (error: any) {
         console.error("Error fetching anime:", error);
@@ -51,9 +52,6 @@ const Index = () => {
         throw error;
       }
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 5 * 60 * 1000,
   });
 
   // Debounce the search input
@@ -69,6 +67,10 @@ const Index = () => {
     setSearchQuery(value);
     debouncedSetSearch(value);
   };
+
+  if (error) {
+    console.error("Query error:", error);
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -98,9 +100,13 @@ const Index = () => {
         <div className="text-center text-red-500">
           An error occurred while fetching the anime list. Please try again.
         </div>
+      ) : !animes?.length ? (
+        <div className="text-center text-gray-500">
+          No anime found. Try a different search term.
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {animes?.map((anime) => (
+          {animes.map((anime) => (
             <AnimeCard
               key={anime.id}
               anime={anime}
