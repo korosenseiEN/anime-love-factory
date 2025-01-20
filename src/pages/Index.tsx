@@ -21,18 +21,25 @@ const Index = () => {
     queryKey: ["animes", debouncedQuery],
     queryFn: async () => {
       try {
-        let query = supabase
-          .from("anime")
-          .select("*")
-          .order("title", { ascending: true });
+        let query = supabase.from("anime").select("*");
 
         if (debouncedQuery) {
           query = query.ilike("title", `%${debouncedQuery}%`);
         }
 
-        const { data, error } = await query;
+        query = query.order("title", { ascending: true });
 
-        if (error) throw error;
+        const { data, error: supabaseError } = await query;
+
+        if (supabaseError) {
+          console.error("Supabase error:", supabaseError);
+          throw new Error(supabaseError.message);
+        }
+
+        if (!data) {
+          return [];
+        }
+
         return data as Anime[];
       } catch (error: any) {
         console.error("Error fetching anime:", error);
@@ -44,6 +51,8 @@ const Index = () => {
         throw error;
       }
     },
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 5 * 60 * 1000,
   });
 
