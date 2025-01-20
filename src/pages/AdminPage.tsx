@@ -20,6 +20,9 @@ const AdminPage = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session) {
+        fetchAnimes();
+      }
       setLoading(false);
     });
 
@@ -27,6 +30,9 @@ const AdminPage = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) {
+        fetchAnimes();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -38,43 +44,34 @@ const AdminPage = () => {
     }
   }, [session, loading, navigate]);
 
-  useEffect(() => {
-    if (session) {
-      fetchAnimes();
-      
-      const channel = supabase
-        .channel('anime_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'anime' },
-          (payload) => {
-            console.log('Change received!', payload);
-            fetchAnimes();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [session]);
-
   const fetchAnimes = async () => {
-    const { data, error } = await supabase
-      .from("anime")
-      .select("*")
-      .order('title', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from("anime")
+        .select("*")
+        .order('title', { ascending: true });
 
-    if (error) {
+      if (error) {
+        console.error("Error fetching anime:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch anime data: " + error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
+        setAnimes(data);
+      }
+    } catch (error) {
+      console.error("Error in fetchAnimes:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch anime data",
+        description: "An unexpected error occurred while fetching anime data",
         variant: "destructive",
       });
-      return;
     }
-    setAnimes(data);
   };
 
   const handleUpdate = async (id: number, updates: Partial<Anime>) => {
