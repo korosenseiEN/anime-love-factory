@@ -53,7 +53,7 @@ export interface APIAnime {
 export const fetchTopAnime = async (): Promise<APIAnime[]> => {
   try {
     console.log('Fetching top anime...');
-    const response = await fetchWithRetry(`${BASE_URL}/top/anime?limit=12`);
+    const response = await fetchWithRetry(`${BASE_URL}/top/anime?limit=25`); // Increased limit
     const data = await response.json();
     console.log('Successfully fetched top anime');
     return data.data;
@@ -66,7 +66,7 @@ export const fetchTopAnime = async (): Promise<APIAnime[]> => {
 export const searchAnime = async (query: string): Promise<APIAnime[]> => {
   try {
     console.log(`Searching anime with query: ${query}`);
-    const response = await fetchWithRetry(`${BASE_URL}/anime?q=${query}&limit=12`);
+    const response = await fetchWithRetry(`${BASE_URL}/anime?q=${query}`); // Removed limit
     const data = await response.json();
     console.log('Successfully fetched search results');
     return data.data;
