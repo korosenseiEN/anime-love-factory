@@ -16,22 +16,53 @@ const FavoritesPage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    const checkAuthAndFetch = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          navigate("/login");
+          return;
+        }
+
+        if (!session) {
+          navigate("/login");
+          return;
+        }
+
+        await fetchFavorites();
+      } catch (error) {
+        console.error("Auth check error:", error);
         navigate("/login");
-      } else {
-        fetchFavorites();
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkAuth();
+    checkAuthAndFetch();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        navigate("/login");
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        fetchFavorites();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const fetchFavorites = async () => {
     try {
       setLoading(true);
       
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
       // First, get the user's favorites
       const { data: favoritesData, error: favoritesError } = await supabase
         .from("favorites")

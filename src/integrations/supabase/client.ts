@@ -14,6 +14,9 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: localStorage,
+      storageKey: 'supabase.auth.token',
     },
     global: {
       headers: {
@@ -22,3 +25,6 @@ export const supabase = createClient<Database>(
     },
   }
 );
+
+// Initialize auth state from storage
+supabase.auth.getSession().catch(console.error);
